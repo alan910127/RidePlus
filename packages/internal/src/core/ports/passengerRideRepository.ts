@@ -1,5 +1,5 @@
-import { type PassengerRide } from "~/core/domain/passengerRide";
-import { type MakeOptional } from "~/types/magic";
+import { type PassengerRide } from "../../core/domain/passengerRide";
+import { type MakeOptional } from "../../types/magic";
 
 export type SavePassengerRideInput = MakeOptional<
   PassengerRide,
@@ -8,4 +8,9 @@ export type SavePassengerRideInput = MakeOptional<
 
 export type PassengerRideRepository = {
   save(input: SavePassengerRideInput): Promise<PassengerRide>;
+  findByDriverRideId(
+    driverRideId: string,
+    passengerId: string,
+  ): Promise<PassengerRide | null>;
+  countByDriverRideId(driverRideId: string): Promise<number>;
 };

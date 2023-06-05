@@ -1,7 +1,7 @@
 import { type PrismaClient } from "@prisma/client";
 import { z } from "zod";
 
-import { type PassengerRideRepository } from "~/core/ports/passengerRideRepository";
+import { type PassengerRideRepository } from "../core/ports/passengerRideRepository";
 import { locationsToConnectOrCreate } from "./locationToConnectOrCreate";
 
 export const locationsSchema = z.array(
@@ -28,7 +28,6 @@ export const createPrismaPassengerRideRepo = (
           status: true,
           locations: true,
         },
-        // TODO: finish the update
         update: {
           status: input.status,
           locations: {
@@ -46,6 +45,37 @@ export const createPrismaPassengerRideRepo = (
       });
 
       return ride;
+    },
+
+    findByDriverRideId: async (driverRideId, passengerId) => {
+      const ride = await prisma.passengerRide.findUnique({
+        where: {
+          driverRideId_passengerId: {
+            driverRideId,
+            passengerId,
+          },
+        },
+        select: {
+          id: true,
+          driverId: true,
+          passengerId: true,
+          driverRideId: true,
+          status: true,
+          locations: true,
+        },
+      });
+
+      return ride;
+    },
+    countByDriverRideId: async (driverRideId) => {
+      const count = await prisma.passengerRide.count({
+        where: {
+          driverRideId,
+          status: "APPROVED",
+        },
+      });
+
+      return count;
     },
   };
 };

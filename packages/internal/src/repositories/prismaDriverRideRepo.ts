@@ -1,6 +1,6 @@
 import { type PrismaClient } from "@prisma/client";
 
-import { type DriverRideRepository } from "~/core/ports/driverRideRepository";
+import { type DriverRideRepository } from "../core/ports/driverRideRepository";
 import { locationsToConnectOrCreate } from "./locationToConnectOrCreate";
 
 export const createPrismaDriverRideRepo = (
@@ -31,6 +31,21 @@ export const createPrismaDriverRideRepo = (
             connectOrCreate: locationsToConnectOrCreate(input.locations),
           },
           departAt: input.departAt,
+        },
+      });
+      return ride;
+    },
+    findById: async (id) => {
+      const ride = await prisma.driverRide.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          id: true,
+          driverId: true,
+          locations: true,
+          status: true,
+          departAt: true,
         },
       });
       return ride;
