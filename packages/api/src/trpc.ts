@@ -30,6 +30,9 @@ type CreateContextOptions = {
   driverRideRepository: RidePlus.DriverRideRepository;
   passengerRideRepository: RidePlus.PassengerRideRepository;
   driverRepository: RidePlus.DriverRepository;
+  userRepository: RidePlus.UserRepository;
+  passengerRepository: RidePlus.PassengerRepository;
+  reviewRepository: RidePlus.ReviewRepository;
 };
 
 /**
@@ -47,13 +50,19 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
     drivers: opts.driverRepository,
     passengerRides: opts.passengerRideRepository,
     locations: opts.locationRepository,
+    reviews: opts.reviewRepository,
+    users: opts.userRepository,
   });
 
-  const passengerService = RidePlus.createPassengerService(
-    opts.passengerRideRepository,
-    opts.driverRideRepository,
-    opts.driverRepository,
-  );
+  const passengerService = RidePlus.createPassengerService({
+    driverRides: opts.driverRideRepository,
+    drivers: opts.driverRepository,
+    passengerRides: opts.passengerRideRepository,
+    locations: opts.locationRepository,
+    users: opts.userRepository,
+    passengers: opts.passengerRepository,
+    reviews: opts.reviewRepository,
+  });
 
   return {
     auth: opts.auth,
@@ -71,12 +80,14 @@ export const createTRPCContext = (opts: CreateNextContextOptions) => {
   // get the user session from the request
   const auth = getAuth(opts.req);
 
-  // TODO: replace with real location repository
-  const locationRepository = { findName: () => Promise.resolve([]) };
+  const locationRepository = RidePlus.createPrismaLocationRepo(prisma);
   const driverRideRepository = RidePlus.createPrismaDriverRideRepo(prisma);
   const passengerRideRepository =
     RidePlus.createPrismaPassengerRideRepo(prisma);
   const driverRepository = RidePlus.createPrismaDriverRepo(prisma);
+  const passengerRepository = RidePlus.createPrismaPassengerRepo(prisma);
+  const userRepository = RidePlus.createClerkUserRepo();
+  const reviewRepository = RidePlus.createPrismaReviewRepo(prisma);
 
   return createInnerTRPCContext({
     auth,
@@ -84,6 +95,9 @@ export const createTRPCContext = (opts: CreateNextContextOptions) => {
     driverRideRepository,
     passengerRideRepository,
     driverRepository,
+    userRepository,
+    passengerRepository,
+    reviewRepository,
   });
 };
 

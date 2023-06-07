@@ -2,7 +2,6 @@ import { type PrismaClient } from "@prisma/client";
 import { z } from "zod";
 
 import { type PassengerRideRepository } from "../core/ports/passengerRideRepository";
-import { locationsToConnectOrCreate } from "./locationToConnectOrCreate";
 
 export const locationsSchema = z.array(
   z.object({
@@ -16,28 +15,57 @@ export const createPrismaPassengerRideRepo = (
 ): PassengerRideRepository => {
   return {
     save: async (input) => {
+      if (input.id == null) {
+        return prisma.passengerRide.create({
+          data: {
+            driverId: input.driverId,
+            locations: {
+              connect: input.locations.map((location) => ({
+                driverRideId_latitude_longitude: {
+                  driverRideId: input.driverRideId,
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                },
+              })),
+            },
+            passengerId: input.passengerId,
+            driverRideId: input.driverRideId,
+          },
+          include: {
+            locations: true,
+          },
+        });
+      }
+
       const ride = await prisma.passengerRide.upsert({
         where: {
           id: input.id,
         },
-        select: {
-          id: true,
-          driverId: true,
-          passengerId: true,
-          driverRideId: true,
-          status: true,
+        include: {
           locations: true,
         },
         update: {
           status: input.status,
           locations: {
-            connectOrCreate: locationsToConnectOrCreate(input.locations),
+            connect: input.locations.map((location) => ({
+              driverRideId_latitude_longitude: {
+                driverRideId: input.driverRideId,
+                latitude: location.latitude,
+                longitude: location.longitude,
+              },
+            })),
           },
         },
         create: {
           driverId: input.driverId,
           locations: {
-            connectOrCreate: locationsToConnectOrCreate(input.locations),
+            connect: input.locations.map((location) => ({
+              driverRideId_latitude_longitude: {
+                driverRideId: input.driverRideId,
+                latitude: location.latitude,
+                longitude: location.longitude,
+              },
+            })),
           },
           passengerId: input.passengerId,
           driverRideId: input.driverRideId,
@@ -55,18 +83,14 @@ export const createPrismaPassengerRideRepo = (
             passengerId,
           },
         },
-        select: {
-          id: true,
-          driverId: true,
-          passengerId: true,
-          driverRideId: true,
-          status: true,
+        include: {
           locations: true,
         },
       });
 
       return ride;
     },
+
     countByDriverRideId: async (driverRideId) => {
       const count = await prisma.passengerRide.count({
         where: {
@@ -76,6 +100,63 @@ export const createPrismaPassengerRideRepo = (
       });
 
       return count;
+    },
+
+    findByPassengerIdWithStatus: async (passengerId, status) => {
+      const rides = await prisma.passengerRide.findMany({
+        where: {
+          passengerId,
+          status,
+        },
+        include: {
+          locations: true,
+          driverRide: {
+            select: {
+              departAt: true,
+            },
+          },
+        },
+      });
+
+      return rides;
+    },
+
+    findFavoritesByPassengerId: async (passengerId, limit) => {
+      const rides = await prisma.passengerRide.findMany({
+        where: {
+          passengerId,
+          isFavorite: true,
+        },
+        include: {
+          driverRide: {
+            select: {
+              departAt: true,
+            },
+          },
+          locations: true,
+        },
+        take: limit,
+      });
+
+      return rides;
+    },
+    findByDriverIdWithStatus: async (driverId, status) => {
+      const rides = await prisma.passengerRide.findMany({
+        where: {
+          driverId,
+          status,
+        },
+        include: {
+          driverRide: {
+            select: {
+              departAt: true,
+            },
+          },
+          locations: true,
+        },
+      });
+
+      return rides;
     },
   };
 };

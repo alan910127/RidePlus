@@ -1,10 +1,13 @@
 import React, { type Dispatch, type SetStateAction } from "react";
 import { Image, Modal, Text, TouchableOpacity, View } from "react-native";
 import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
-import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
-import EvilIcons from "@expo/vector-icons/EvilIcons";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import SimpleLineIcons from "@expo/vector-icons/SimpleLineIcons";
+import {
+  AntDesign,
+  EvilIcons,
+  Ionicons,
+  MaterialCommunityIcons,
+  SimpleLineIcons,
+} from "@expo/vector-icons";
 
 import { api } from "~/utils/api";
 import type { RegisterItemProps } from "./RegisterItem";
@@ -18,9 +21,16 @@ export type RideModalProps = {
 };
 
 export const RideModal = (props: RideModalProps) => {
+  const utils = api.useContext();
   const { id, type, modalVisible, setModalVisible, registerItemProps } = props;
-  const riderMutation = api.rider.manageRegistration.useMutation();
+  const cancelRideMutation = api.rider.leaveRide.useMutation();
   const driverMutation = api.driver.manageRider.useMutation();
+  const finishRide = api.driver.finishRide.useMutation({
+    onSuccess: () => {
+      void utils.driver.approvedRider.invalidate();
+      void utils.driver.pendingRider.invalidate();
+    },
+  });
 
   return (
     <View>
@@ -92,7 +102,7 @@ export const RideModal = (props: RideModalProps) => {
 
               <View className="py-1">
                 {type === "driver-passengers" && (
-                  <View className="flex-row items-center justify-end">
+                  <View className="flex-row items-center justify-around">
                     <TouchableOpacity
                       onPress={() => {
                         driverMutation.mutate({
@@ -112,6 +122,26 @@ export const RideModal = (props: RideModalProps) => {
                           />
                         </View>
                         <Text className="font-bold">Cancel</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        finishRide.mutate({
+                          rideId: id,
+                        });
+                        setModalVisible(!modalVisible);
+                      }}
+                    >
+                      <View className="flex-row items-center rounded-lg bg-white px-6 py-2">
+                        <View className="pr-4">
+                          <AntDesign
+                            name="checkcircle"
+                            size={24}
+                            color="green"
+                          />
+                        </View>
+                        <Text className="font-bold">Finish</Text>
                       </View>
                     </TouchableOpacity>
                   </View>
@@ -168,7 +198,7 @@ export const RideModal = (props: RideModalProps) => {
                   <View className="flex-row items-center justify-between">
                     <TouchableOpacity
                       onPress={() => {
-                        riderMutation.mutate({ action: "cancel", rideId: id });
+                        cancelRideMutation.mutate({ rideId: id });
                         setModalVisible(!modalVisible);
                       }}
                     >
@@ -205,7 +235,7 @@ export const RideModal = (props: RideModalProps) => {
                   <View className="flex-row items-center justify-between">
                     <TouchableOpacity
                       onPress={() => {
-                        riderMutation.mutate({ action: "leave", rideId: id });
+                        cancelRideMutation.mutate({ rideId: id });
                         setModalVisible(!modalVisible);
                       }}
                     >
